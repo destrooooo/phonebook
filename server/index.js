@@ -2,7 +2,7 @@ require(`dotenv`).config();
 const express = require("express");
 const morgan = require("morgan");
 const app = express();
-const Number = require("./models/phonebook");
+const person = require("./models/phonebook");
 
 app.use(express.static("dist"));
 app.use(express.json());
@@ -18,13 +18,13 @@ app.get("/", (request, response) => {
 });
 
 app.get("/api/persons", (request, response) => {
-  Number.find({}).then((numbers) => {
-    response.json(numbers);
+  person.find({}).then((persons) => {
+    response.json(persons);
   });
 });
 
 app.get("/info", (request, response) => {
-  Number.countDocuments({}).then((count) => {
+  person.countDocuments({}).then((count) => {
     const info = `<p>Phonebook has info for ${count} people</p>`;
     const date = new Date();
     response.send(`${info} ${date}`);
@@ -32,7 +32,8 @@ app.get("/info", (request, response) => {
 });
 
 app.get("/api/persons/:id", (request, response) => {
-  Number.findById(request.params.id)
+  person
+    .findById(request.params.id)
     .then((person) => {
       if (person) {
         response.json(person);
@@ -47,7 +48,8 @@ app.get("/api/persons/:id", (request, response) => {
 });
 
 app.delete("/api/persons/:id", (request, response) => {
-  Number.findByIdAndRemove(request.params.id)
+  person
+    .findByIdAndRemove(request.params.id)
     .then(() => {
       response.status(204).end();
     })
@@ -66,17 +68,17 @@ app.post("/api/persons", (request, response) => {
       .json({ error: "new entry should have a name & a number!" });
   }
 
-  Number.findOne({ name: body.name }).then((existing) => {
+  Person.findOne({ name: body.name }).then((existing) => {
     if (existing) {
       return response.status(400).json({ error: "name must be unique" });
     }
 
-    const person = new Number({
+    const newPerson = new Person({
       name: body.name,
       number: body.number,
     });
 
-    person.save().then((savedPerson) => {
+    newPerson.save().then((savedPerson) => {
       response.json(savedPerson);
     });
   });
