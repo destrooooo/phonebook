@@ -1,90 +1,80 @@
-require(`dotenv`).config();
+require("dotenv").config();
 const express = require("express");
 const morgan = require("morgan");
 const app = express();
-const person = require("./models/phonebook");
+const Person = require("./models/phonebook");
 
 app.use(express.static("dist"));
 app.use(express.json());
 
 morgan.token("body", (req) => JSON.stringify(req.body));
-
 app.use(
   morgan(":method :url :status :res[content-length] - :response-time ms :body")
 );
 
-app.get("/", (request, response) => {
-  response.send("<h1>Hello World!</h1>");
+// Routes
+app.get("/", (req, res) => {
+  res.send("<h1>Hello World!</h1>");
 });
 
-app.get("/api/persons", (request, response) => {
-  person.find({}).then((persons) => {
-    response.json(persons);
+app.get("/api/persons", (req, res) => {
+  Person.find({}).then((persons) => {
+    res.json(persons);
   });
 });
 
-app.get("/info", (request, response) => {
-  person.countDocuments({}).then((count) => {
-    const info = `<p>Phonebook has info for ${count} people</p>`;
+app.get("/info", (req, res) => {
+  Person.countDocuments({}).then((count) => {
     const date = new Date();
-    response.send(`${info} ${date}`);
+    res.send(`<p>Phonebook has info for ${count} people</p><p>${date}</p>`);
   });
 });
 
-app.get("/api/persons/:id", (request, response) => {
-  person
-    .findById(request.params.id)
+app.get("/api/persons/:id", (req, res) => {
+  Person.findById(req.params.id)
     .then((person) => {
-      if (person) {
-        response.json(person);
-      } else {
-        response.status(404).end();
-      }
+      if (person) res.json(person);
+      else res.status(404).end();
     })
     .catch((error) => {
       console.error(error);
-      response.status(400).send({ error: "malformatted id" });
+      res.status(400).send({ error: "malformatted id" });
     });
 });
 
-app.delete("/api/persons/:id", (request, response) => {
-  person
-    .findByIdAndRemove(request.params.id)
-    .then(() => {
-      response.status(204).end();
-    })
+app.delete("/api/persons/:id", (req, res) => {
+  Person.findByIdAndRemove(req.params.id)
+    .then(() => res.status(204).end())
     .catch((error) => {
       console.error(error);
-      response.status(400).send({ error: "malformatted id" });
+      res.status(400).send({ error: "malformatted id" });
     });
 });
 
-app.post("/api/persons", (request, response) => {
-  const body = request.body;
+app.post("/api/persons", (req, res) => {
+  const { name, number } = req.body;
 
-  if (!body.name || !body.number) {
-    return response
+  if (!name || !number) {
+    return res
       .status(400)
       .json({ error: "new entry should have a name & a number!" });
   }
 
-  Person.findOne({ name: body.name }).then((existing) => {
+  Person.findOne({ name }).then((existing) => {
     if (existing) {
-      return response.status(400).json({ error: "name must be unique" });
+      return res.status(400).json({ error: "name must be unique" });
     }
 
-    const newPerson = new Person({
-      name: body.name,
-      number: body.number,
-    });
+    const newPerson = new Person({ name, number });
 
     newPerson.save().then((savedPerson) => {
-      response.json(savedPerson);
+      res.json(savedPerson);
     });
   });
 });
 
-const PORT = process.env.PORT;
+// Start server
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
